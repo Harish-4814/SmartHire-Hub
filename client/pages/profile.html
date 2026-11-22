@@ -1,0 +1,327 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Smart Placement Portal</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f6fb;
+            color: #172554;
+        }
+
+        header {
+            background: #172554;
+            color: white;
+            padding: 20px 7%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 35px auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 3px 15px #00000010;
+            margin-bottom: 20px;
+        }
+
+        h1, h2 {
+            margin-bottom: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+        }
+
+        .field {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        input:disabled {
+            background: #e2e8f0;
+            color: #64748b;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 13px 22px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        #message {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        @media(max-width: 600px) {
+            header {
+                padding: 15px 5%;
+            }
+
+            .container {
+                margin: 15px auto;
+            }
+
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h2>Student Profile</h2>
+    <a href="dashboard.html">Back to Dashboard</a>
+</header>
+
+<div class="container">
+
+    <div class="card">
+
+        <h1>My Profile</h1>
+        <p>View your academic details and personal information.</p>
+
+        <br>
+
+        <h2>Academic Information</h2>
+
+        <div class="grid">
+
+            <div class="field">
+                <label>Full Name</label>
+                <input type="text" id="name" disabled>
+            </div>
+
+            <div class="field">
+                <label>Email</label>
+                <input type="email" id="email" disabled>
+            </div>
+
+            <div class="field">
+                <label>Course</label>
+                <input type="text" id="course" disabled>
+            </div>
+
+            <div class="field">
+                <label>Year</label>
+                <input type="text" id="year" disabled>
+            </div>
+
+            <div class="field">
+                <label>CGPA</label>
+                <input type="text" id="cgpa" disabled>
+            </div>
+
+            <div class="field">
+                <label>Active Backlogs</label>
+                <input type="text" id="backlogs" disabled>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <h2>Personal & Professional Details</h2>
+
+        <form id="profileForm">
+
+            <div class="field">
+                <label>Phone Number</label>
+                <input
+                    type="tel"
+                    id="phone"
+                    placeholder="Enter phone number"
+                    maxlength="15"
+                >
+            </div>
+
+            <div class="field">
+                <label>LinkedIn Profile</label>
+                <input
+                    type="url"
+                    id="linkedin"
+                    placeholder="https://linkedin.com/in/yourprofile"
+                >
+            </div>
+
+            <div class="field">
+                <label>GitHub Profile</label>
+                <input
+                    type="url"
+                    id="github"
+                    placeholder="https://github.com/yourusername"
+                >
+            </div>
+
+            <div class="field">
+                <label>Technical Skills</label>
+                <textarea
+                    id="skills"
+                    rows="4"
+                    placeholder="Python, C, HTML, CSS, JavaScript"
+                ></textarea>
+            </div>
+
+            <button type="submit" id="saveBtn">
+                Save Changes
+            </button>
+
+            <p id="message"></p>
+
+        </form>
+
+    </div>
+
+</div>
+
+<script>
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+        window.location.href = "login.html";
+    }
+
+    const API = "http://localhost:5000/api/profile";
+
+    async function loadProfile() {
+        try {
+            const response = await fetch(API, {
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || "Could not load profile");
+            }
+
+            const user = data.user;
+
+            document.getElementById("name").value = user.name || "";
+            document.getElementById("email").value = user.email || "";
+            document.getElementById("course").value = user.course || "";
+            document.getElementById("year").value = user.year || "";
+            document.getElementById("cgpa").value = user.cgpa || "Not updated";
+            document.getElementById("backlogs").value = user.activeBacklogs ?? 0;
+
+            document.getElementById("phone").value = user.phone || "";
+            document.getElementById("linkedin").value = user.linkedin || "";
+            document.getElementById("github").value = user.github || "";
+            document.getElementById("skills").value =
+                (user.skills || []).join(", ");
+
+        } catch (error) {
+            document.getElementById("message").textContent = error.message;
+            document.getElementById("message").style.color = "red";
+        }
+    }
+
+    document.getElementById("profileForm").addEventListener("submit", async function(e) {
+        e.preventDefault();
+
+        const saveBtn = document.getElementById("saveBtn");
+        const message = document.getElementById("message");
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Saving...";
+
+        const profileData = {
+            phone: document.getElementById("phone").value.trim(),
+            linkedin: document.getElementById("linkedin").value.trim(),
+            github: document.getElementById("github").value.trim(),
+            skills: document.getElementById("skills").value
+                .split(",")
+                .map(skill => skill.trim())
+                .filter(Boolean)
+        };
+
+        try {
+            const response = await fetch(API, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify(profileData)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || "Could not save profile");
+            }
+
+            message.textContent = "Profile updated successfully!";
+            message.style.color = "green";
+
+            // Update cached user details
+            const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+            Object.assign(user, data.user);
+            localStorage.setItem("user", JSON.stringify(user));
+
+        } catch (error) {
+            message.textContent = error.message;
+            message.style.color = "red";
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Save Changes";
+        }
+    });
+
+    loadProfile();
+</script>
+
+</body>
+</html>

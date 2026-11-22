@@ -1,0 +1,458 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage Placements - SmartHire Hub</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    background: #f4f7fb;
+    color: #172b4d;
+}
+
+header {
+    background: #172554;
+    color: white;
+    padding: 20px 7%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header a {
+    color: white;
+    text-decoration: none;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 35px auto;
+    padding: 20px;
+}
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    box-shadow: 0 3px 12px #0000000d;
+}
+
+h1, h2 {
+    margin-top: 0;
+}
+
+form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+input, textarea, select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+textarea {
+    grid-column: span 2;
+    resize: vertical;
+}
+
+.full {
+    grid-column: span 2;
+}
+
+button {
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: white;
+    background: #2563eb;
+    margin: 3px;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+.delete {
+    background: #dc2626;
+}
+
+.edit {
+    background: #475569;
+}
+
+.close {
+    background: #d97706;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: white;
+}
+
+th, td {
+    padding: 13px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+th {
+    background: #172554;
+    color: white;
+}
+
+#message {
+    margin: 15px 0;
+    font-weight: bold;
+}
+
+@media(max-width:700px) {
+    form {
+        grid-template-columns: 1fr;
+    }
+
+    textarea, .full {
+        grid-column: span 1;
+    }
+
+    .card {
+        overflow-x: auto;
+    }
+
+    table {
+        min-width: 750px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h2>SmartHire Hub</h2>
+    <a href="admin-dashboard.html">Back to Dashboard</a>
+</header>
+
+<div class="container">
+
+    <h1>Placement Management</h1>
+    <p>Add and manage company placement opportunities.</p>
+
+    <div class="card">
+        <h2 id="formTitle">Add New Placement</h2>
+
+        <form id="placementForm">
+
+            <input id="companyName" placeholder="Company Name" required>
+
+            <input id="jobRole" placeholder="Job Role" required>
+
+            <input id="salary" placeholder="Salary / Package">
+
+            <input id="eligibilityCGPA" type="number"
+                   min="0" max="10" step="0.01"
+                   placeholder="Minimum CGPA">
+
+            <input id="eligibleCourse" placeholder="Eligible Course"
+                   value="BCA AI & DS">
+
+            <input id="eligibleYear" type="number"
+                   min="0" placeholder="Eligible Year (0 = Any)">
+
+            <input id="requiredSkills"
+                   placeholder="Required Skills (comma separated)">
+
+            <input id="deadline" type="date" required>
+
+            <input id="applicationLink" type="url"
+                   placeholder="Application Link">
+
+            <select id="status">
+                <option value="draft">Save as Draft</option>
+                <option value="published">Publish</option>
+            </select>
+
+            <textarea id="description" rows="4"
+                      placeholder="Job Description"></textarea>
+
+            <div class="full">
+                <button type="submit" id="submitBtn">Add Placement</button>
+                <button type="button" id="cancelBtn"
+                        class="edit" style="display:none">
+                    Cancel Edit
+                </button>
+            </div>
+
+        </form>
+
+        <p id="message"></p>
+    </div>
+
+    <div class="card">
+        <h2>All Placement Opportunities</h2>
+
+        <div style="overflow-x:auto">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Company</th>
+                        <th>Role</th>
+                        <th>Package</th>
+                        <th>Deadline</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody id="placementTable">
+                    <tr><td colspan="6">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const API = "http://localhost:5000/api/placements";
+
+const token = localStorage.getItem("adminToken") ||
+              localStorage.getItem("token");
+
+const form = document.getElementById("placementForm");
+const table = document.getElementById("placementTable");
+const message = document.getElementById("message");
+
+let placements = [];
+let editingId = null;
+
+function authHeaders() {
+    return {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+    };
+}
+
+function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[char]);
+}
+
+async function loadPlacements() {
+    try {
+        const response = await fetch(API + "/admin/all", {
+            headers: authHeaders()
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Unable to load placements");
+        }
+
+        placements = data.placements || [];
+        table.innerHTML = "";
+
+        if (placements.length === 0) {
+            table.innerHTML =
+                '<tr><td colspan="6">No placements added yet.</td></tr>';
+            return;
+        }
+
+        placements.forEach(p => {
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td>${escapeHTML(p.companyName)}</td>
+                <td>${escapeHTML(p.jobRole)}</td>
+                <td>${escapeHTML(p.salary || "-")}</td>
+                <td>${p.deadline ? new Date(p.deadline).toLocaleDateString() : "-"}</td>
+                <td>${escapeHTML(p.status)}</td>
+                <td>
+                    <button class="edit" data-action="edit">Edit</button>
+                    <button class="delete" data-action="delete">Delete</button>
+                    ${p.status === "published"
+                        ? '<button class="close" data-action="close">Close</button>'
+                        : '<button data-action="publish">Publish</button>'}
+                </td>
+            `;
+
+            row.querySelector('[data-action="edit"]').onclick =
+                () => editPlacement(p._id);
+
+            row.querySelector('[data-action="delete"]').onclick =
+                () => deletePlacement(p._id);
+
+            const publish = row.querySelector('[data-action="publish"]');
+            if (publish) {
+                publish.onclick = () => updateStatus(p._id, "published");
+            }
+
+            const close = row.querySelector('[data-action="close"]');
+            if (close) {
+                close.onclick = () => updateStatus(p._id, "closed");
+            }
+
+            table.appendChild(row);
+        });
+
+    } catch (error) {
+        table.innerHTML =
+            '<tr><td colspan="6">Could not load placements.</td></tr>';
+        message.textContent = error.message;
+    }
+}
+
+form.addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const placement = {
+        companyName: document.getElementById("companyName").value.trim(),
+        jobRole: document.getElementById("jobRole").value.trim(),
+        salary: document.getElementById("salary").value.trim(),
+        eligibilityCGPA: Number(document.getElementById("eligibilityCGPA").value || 0),
+        eligibleCourse: document.getElementById("eligibleCourse").value.trim(),
+        eligibleYear: Number(document.getElementById("eligibleYear").value || 0),
+        requiredSkills: document.getElementById("requiredSkills").value,
+        deadline: document.getElementById("deadline").value,
+        applicationLink: document.getElementById("applicationLink").value.trim(),
+        status: document.getElementById("status").value,
+        description: document.getElementById("description").value.trim()
+    };
+
+    try {
+        const response = await fetch(
+            editingId ? API + "/" + editingId : API,
+            {
+                method: editingId ? "PUT" : "POST",
+                headers: authHeaders(),
+                body: JSON.stringify(placement)
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Operation failed");
+        }
+
+        message.textContent = data.message;
+        form.reset();
+        editingId = null;
+        document.getElementById("eligibleCourse").value = "BCA AI & DS";
+        document.getElementById("formTitle").textContent = "Add New Placement";
+        document.getElementById("submitBtn").textContent = "Add Placement";
+        document.getElementById("cancelBtn").style.display = "none";
+
+        loadPlacements();
+
+    } catch (error) {
+        message.textContent = error.message;
+    }
+});
+
+function editPlacement(id) {
+    const p = placements.find(item => item._id === id);
+    if (!p) return;
+
+    editingId = id;
+
+    document.getElementById("companyName").value = p.companyName || "";
+    document.getElementById("jobRole").value = p.jobRole || "";
+    document.getElementById("salary").value = p.salary || "";
+    document.getElementById("eligibilityCGPA").value = p.eligibilityCGPA ?? 0;
+    document.getElementById("eligibleCourse").value = p.eligibleCourse || "";
+    document.getElementById("eligibleYear").value = p.eligibleYear ?? 0;
+    document.getElementById("requiredSkills").value =
+        Array.isArray(p.requiredSkills) ? p.requiredSkills.join(", ") : "";
+    document.getElementById("deadline").value =
+        p.deadline ? new Date(p.deadline).toISOString().split("T")[0] : "";
+    document.getElementById("applicationLink").value = p.applicationLink || "";
+    document.getElementById("description").value = p.description || "";
+    document.getElementById("status").value = p.status || "draft";
+
+    document.getElementById("formTitle").textContent = "Edit Placement";
+    document.getElementById("submitBtn").textContent = "Save Changes";
+    document.getElementById("cancelBtn").style.display = "inline-block";
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function updateStatus(id, status) {
+    try {
+        const response = await fetch(API + "/" + id, {
+            method: "PUT",
+            headers: authHeaders(),
+            body: JSON.stringify({ status })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Update failed");
+
+        message.textContent = data.message;
+        loadPlacements();
+
+    } catch (error) {
+        message.textContent = error.message;
+    }
+}
+
+async function deletePlacement(id) {
+    if (!confirm("Are you sure you want to delete this placement?")) return;
+
+    try {
+        const response = await fetch(API + "/" + id, {
+            method: "DELETE",
+            headers: authHeaders()
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Delete failed");
+
+        message.textContent = data.message;
+        loadPlacements();
+
+    } catch (error) {
+        message.textContent = error.message;
+    }
+}
+
+document.getElementById("cancelBtn").onclick = () => {
+    editingId = null;
+    form.reset();
+    document.getElementById("eligibleCourse").value = "BCA AI & DS";
+    document.getElementById("formTitle").textContent = "Add New Placement";
+    document.getElementById("submitBtn").textContent = "Add Placement";
+    document.getElementById("cancelBtn").style.display = "none";
+};
+
+if (!token) {
+    message.textContent = "Please login as administrator.";
+} else {
+    loadPlacements();
+}
+</script>
+
+</body>
+</html>

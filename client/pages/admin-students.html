@@ -1,0 +1,131 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Students - SmartHire Hub</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 30px;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+        h1 { color: #172554; }
+        .container {
+            max-width: 1100px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px #00000010;
+            overflow-x: auto;
+        }
+        button {
+            padding: 10px 16px;
+            border: 0;
+            border-radius: 6px;
+            background: #1e40af;
+            color: white;
+            cursor: pointer;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 13px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th { background: #eff6ff; }
+        #message { margin-top: 15px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Student Management</h1>
+    <p>View all registered students.</p>
+    <button onclick="loadStudents()">Refresh Students</button>
+    <p id="message"></p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Course</th>
+                <th>Year</th>
+                <th>CGPA</th>
+            </tr>
+        </thead>
+        <tbody id="studentTable"></tbody>
+    </table>
+</div>
+
+<script>
+const API = "http://localhost:5000/api/admin/students";
+
+async function loadStudents() {
+    const message = document.getElementById("message");
+    const table = document.getElementById("studentTable");
+    const token = localStorage.getItem("adminToken") ||
+                  localStorage.getItem("token");
+
+    if (!token) {
+        message.textContent = "Please login as admin again.";
+        return;
+    }
+
+    message.textContent = "Loading students...";
+    table.innerHTML = "";
+
+    try {
+        const response = await fetch(API, {
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Unable to load students");
+        }
+
+        const students = Array.isArray(data) ? data :
+                         (data.students || []);
+
+        if (students.length === 0) {
+            message.textContent = "No students found.";
+            return;
+        }
+
+        students.forEach(student => {
+            const tr = document.createElement("tr");
+
+            [student.name, student.email, student.course,
+             student.year, student.cgpa].forEach(value => {
+                const td = document.createElement("td");
+                td.textContent = value ?? "-";
+                tr.appendChild(td);
+            });
+
+            table.appendChild(tr);
+        });
+
+        message.textContent = "Total students: " + students.length;
+
+    } catch (error) {
+        message.textContent = error.message;
+    }
+}
+
+loadStudents();
+</script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Upload Students - Smart Placement Portal</title>
+
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+
+    <header class="navbar">
+        <div class="logo">Smart Placement Portal</div>
+
+        <div class="nav-right">
+            <span>Admin</span>
+            <button onclick="logout()">Logout</button>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+
+        <a href="admin-dashboard.html" class="back-link">
+            ← Back to Admin Dashboard
+        </a>
+
+        <section class="page-header">
+            <h1>Upload Students</h1>
+            <p>Add student accounts using an Excel file.</p>
+        </section>
+
+        <section class="upload-card">
+
+            <h2>Upload Student Excel File</h2>
+
+            <p class="description">
+                Select an Excel file containing student details.
+            </p>
+
+            <div class="upload-area">
+
+                <input
+                    type="file"
+                    id="excelFile"
+                    accept=".xlsx,.xls"
+                >
+
+                <button id="uploadBtn">
+                    Upload Students
+                </button>
+
+            </div>
+
+            <p id="message"></p>
+
+        </section>
+
+        <section class="info-card">
+
+            <h2>Excel Format</h2>
+
+            <p>Your Excel file should contain these columns:</p>
+
+            <div class="table-container">
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Password</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr>
+                            <td>Harish Singh</td>
+                            <td>harish@test.com</td>
+                            <td>123456</td>
+                        </tr>
+
+                        <tr>
+                            <td>Rahul Sharma</td>
+                            <td>rahul@test.com</td>
+                            <td>123456</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="../js/upload-students.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,267 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Smart Placement Portal</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f6fb;
+            color: #222;
+        }
+
+        header {
+            background: #172554;
+            color: white;
+            padding: 20px 7%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .container {
+            width: 86%;
+            margin: 35px auto;
+        }
+
+        .welcome {
+            margin-bottom: 25px;
+        }
+
+        .welcome h1 {
+            margin-bottom: 10px;
+            color: #172554;
+        }
+
+        .welcome p {
+            color: #666;
+        }
+
+        .profile {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 3px 12px #0000000d;
+        }
+
+        .profile h2 {
+            margin-bottom: 18px;
+            color: #172554;
+        }
+
+        .profile-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 18px;
+        }
+
+        .detail {
+            background: #f4f6fb;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .detail p {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 7px;
+        }
+
+        .detail h3 {
+            font-size: 16px;
+            overflow-wrap: anywhere;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px #0000000d;
+        }
+
+        .feature-card h2 {
+            color: #172554;
+            margin-bottom: 12px;
+            font-size: 20px;
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 18px;
+        }
+
+        .feature-card button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 11px 17px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .feature-card button:hover {
+            background: #1d4ed8;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: #777;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                width: 92%;
+            }
+
+            header {
+                padding: 15px 5%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h2>Smart Placement Portal</h2>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+</header>
+
+<div class="container">
+
+    <div class="welcome">
+        <h1>Welcome, <span id="studentName">Student</span>!</h1>
+        <p>Manage your profile and prepare for your placement journey.</p>
+    </div>
+
+    <section class="profile">
+        <h2>My Profile</h2>
+
+        <div class="profile-details">
+
+            <div class="detail">
+                <p>Full Name</p>
+                <h3 id="name">-</h3>
+            </div>
+
+            <div class="detail">
+                <p>Email</p>
+                <h3 id="email">-</h3>
+            </div>
+
+            <div class="detail">
+                <p>Course</p>
+                <h3 id="course">-</h3>
+            </div>
+
+            <div class="detail">
+                <p>Year</p>
+                <h3 id="year">-</h3>
+            </div>
+
+            <div class="detail">
+                <p>CGPA</p>
+                <h3 id="cgpa">-</h3>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="features">
+
+        <div class="feature-card">
+            <h2>Resume Analyzer</h2>
+            <p>Upload your resume to extract CGPA and technical skills, and use an external ATS checker.</p>
+            <button onclick="window.location.href='resume.html'">
+                Analyze Resume
+            </button>
+        </div>
+
+        <div class="feature-card">
+            <h2>Placement Opportunities</h2>
+            <p>View job opportunities announced by the placement administrator and check eligibility.</p>
+            <button onclick="window.location.href='placements.html'">
+                Explore Jobs
+            </button>
+        </div>
+
+        <div class="feature-card">
+            <h2>My Profile</h2>
+            <p>View and update your personal details, academic information and professional links.</p>
+            <button onclick="window.location.href='profile.html'">
+                View Profile
+            </button>
+        </div>
+
+    </section>
+
+</div>
+
+<footer>
+    Smart Placement Portal | Student Dashboard
+</footer>
+
+<script>
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+
+    if (!token || !user) {
+        window.location.href = "login.html";
+    } else if (user.mustChangePassword === true) {
+        window.location.href = "change-password.html";
+    } else {
+        document.getElementById("studentName").textContent =
+            user.name || "Student";
+
+        document.getElementById("name").textContent =
+            user.name || "-";
+
+        document.getElementById("email").textContent =
+            user.email || "-";
+
+        document.getElementById("course").textContent =
+            user.course || "BCA AI & DS";
+
+        document.getElementById("year").textContent =
+            user.year || "-";
+
+        document.getElementById("cgpa").textContent =
+            user.cgpa > 0 ? user.cgpa : "Upload resume to extract CGPA";
+    }
+
+    function logout() {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "login.html";
+    }
+</script>
+
+</body>
+</html>

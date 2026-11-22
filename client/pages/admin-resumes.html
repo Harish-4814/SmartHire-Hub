@@ -1,0 +1,307 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Resumes</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    background: #f4f7fb;
+    color: #172b4d;
+}
+
+header {
+    background: white;
+    padding: 20px 7%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ddd;
+}
+
+a {
+    color: #2563eb;
+    text-decoration: none;
+}
+
+.container {
+    max-width: 1250px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+h1 {
+    margin-bottom: 10px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    margin-top: 25px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+th {
+    background: #172554;
+    color: white;
+}
+
+button {
+    background: #2563eb;
+    color: white;
+    border: 0;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin: 3px;
+}
+
+button:hover {
+    background: #1d4ed8;
+}
+
+#message {
+    margin-top: 20px;
+}
+
+@media(max-width:700px) {
+    .container {
+        overflow-x: auto;
+    }
+
+    table {
+        min-width: 750px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h2>Smart Placement Portal</h2>
+    <a href="admin-dashboard.html">Back to Dashboard</a>
+</header>
+
+<div class="container">
+
+    <h1>Student Resumes</h1>
+
+    <p>View and download resumes uploaded by students.</p>
+
+    <p id="message">Loading resumes...</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Student</th>
+                <th>Email</th>
+                <th>Course</th>
+                <th>CGPA</th>
+                <th>Resume</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody id="resumeTable"></tbody>
+    </table>
+
+</div>
+
+<script>
+
+const token = localStorage.getItem("adminToken") ||
+              localStorage.getItem("token");
+
+const API = "http://localhost:5000";
+
+const message = document.getElementById("message");
+const table = document.getElementById("resumeTable");
+
+// Load student resumes
+async function loadResumes() {
+
+    if (!token) {
+        message.textContent = "Please login as admin first.";
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            API + "/api/admin/resumes",
+            {
+                headers: {
+                    Authorization: "Bearer " + token
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Unable to load resumes");
+        }
+
+        table.innerHTML = "";
+
+        if (!data.resumes || data.resumes.length === 0) {
+            message.textContent = "No resumes uploaded yet.";
+            return;
+        }
+
+        message.textContent = data.resumes.length + " resume(s) found.";
+
+        data.resumes.forEach(student => {
+
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td>${escapeHTML(student.name || "-")}</td>
+                <td>${escapeHTML(student.email || "-")}</td>
+                <td>${escapeHTML(student.course || "-")}</td>
+                <td>${student.cgpa ?? "-"}</td>
+                <td>${escapeHTML(student.resumeFileName || "Resume")}</td>
+            `;
+
+            const actions = document.createElement("td");
+
+            const view = document.createElement("button");
+            view.textContent = "View";
+            view.onclick = () => openResume(student.viewUrl);
+
+            const download = document.createElement("button");
+            download.textContent = "Download";
+            download.onclick = () => downloadResume(
+                student.viewUrl,
+                student.resumeFileName
+            );
+
+            actions.append(view, download);
+            row.appendChild(actions);
+
+            table.appendChild(row);
+
+        });
+
+    } catch (error) {
+
+        message.textContent = error.message;
+        console.error(error);
+
+    }
+}
+
+// Escape text before inserting into table
+function escapeHTML(value) {
+    return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[char]);
+}
+
+// Get authenticated resume file
+async function getResumeBlob(viewUrl) {
+
+    if (!viewUrl) {
+        throw new Error("Resume URL is missing.");
+    }
+
+    const response = await fetch(API + viewUrl, {
+        headers: {
+            Authorization: "Bearer " + token
+        }
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || "Unable to access resume.");
+    }
+
+    return await response.blob();
+}
+
+// View resume in new tab
+async function openResume(viewUrl) {
+
+    // Open tab immediately to avoid popup blocking
+    const newTab = window.open("about:blank", "_blank");
+
+    try {
+
+        const blob = await getResumeBlob(viewUrl);
+        const fileUrl = URL.createObjectURL(blob);
+
+        if (newTab) {
+            newTab.location.href = fileUrl;
+        } else {
+            window.location.href = fileUrl;
+        }
+
+        setTimeout(() => {
+            URL.revokeObjectURL(fileUrl);
+        }, 60000);
+
+    } catch (error) {
+
+        if (newTab) newTab.close();
+
+        alert(error.message);
+
+    }
+}
+
+// Download resume
+async function downloadResume(viewUrl, originalName) {
+
+    try {
+
+        const blob = await getResumeBlob(viewUrl);
+
+        const fileUrl = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+
+        link.href = fileUrl;
+        link.download = originalName || "student-resume";
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        setTimeout(() => {
+            URL.revokeObjectURL(fileUrl);
+        }, 1000);
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+}
+
+loadResumes();
+
+</script>
+
+</body>
+</html>

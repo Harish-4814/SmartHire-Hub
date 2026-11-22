@@ -1,0 +1,240 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Placement Opportunities - SmartHire Hub</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    background: #f4f7fb;
+    color: #172b4d;
+}
+
+header {
+    background: white;
+    padding: 20px 7%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ddd;
+}
+
+header h2 {
+    margin: 0;
+}
+
+a {
+    text-decoration: none;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 35px auto;
+    padding: 20px;
+}
+
+h1 {
+    margin-bottom: 8px;
+}
+
+#message {
+    margin: 20px 0;
+}
+
+.placement-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 22px;
+}
+
+.card {
+    background: white;
+    padding: 23px;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+}
+
+.card h2 {
+    color: #172554;
+    margin-top: 0;
+}
+
+.company {
+    color: #2563eb;
+    font-weight: bold;
+}
+
+.details {
+    line-height: 1.8;
+    color: #475569;
+}
+
+.apply-btn {
+    display: inline-block;
+    background: #2563eb;
+    color: white;
+    padding: 11px 18px;
+    border-radius: 6px;
+    margin-top: 12px;
+}
+
+.apply-btn:hover {
+    background: #1d4ed8;
+}
+
+.status {
+    display: inline-block;
+    background: #dcfce7;
+    color: #166534;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+@media(max-width:600px) {
+    header {
+        padding: 18px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h2>SmartHire Hub</h2>
+    <a href="dashboard.html">Back to Dashboard</a>
+</header>
+
+<div class="container">
+
+    <h1>Placement Opportunities</h1>
+    <p>Explore the latest placement opportunities announced by your administrator.</p>
+
+    <p id="message">Loading opportunities...</p>
+
+    <div class="placement-grid" id="placementGrid"></div>
+
+</div>
+
+<script>
+const API = "http://localhost:5000/api/placements/published";
+
+const token = localStorage.getItem("token");
+
+const message = document.getElementById("message");
+const grid = document.getElementById("placementGrid");
+
+function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[char]);
+}
+
+async function loadPlacements() {
+
+    if (!token) {
+        message.textContent = "Please login as a student first.";
+        return;
+    }
+
+    try {
+
+        const response = await fetch(API, {
+            headers: {
+                Authorization: "Bearer " + token
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Unable to load placements");
+        }
+
+        const placements = data.placements || [];
+
+        grid.innerHTML = "";
+
+        if (placements.length === 0) {
+            message.textContent = "No placement opportunities available currently.";
+            return;
+        }
+
+        message.textContent = placements.length + " placement opportunity/opportunities found.";
+
+        placements.forEach(p => {
+
+            const skills = Array.isArray(p.requiredSkills)
+                ? p.requiredSkills.join(", ")
+                : p.requiredSkills || "Not specified";
+
+            const deadline = p.deadline
+                ? new Date(p.deadline).toLocaleDateString()
+                : "Not specified";
+
+            const card = document.createElement("div");
+            card.className = "card";
+
+            card.innerHTML = `
+                <span class="status">Published</span>
+
+                <h2>${escapeHTML(p.jobRole)}</h2>
+
+                <p class="company">${escapeHTML(p.companyName)}</p>
+
+                <div class="details">
+                    <b>Package:</b> ${escapeHTML(p.salary || "Not specified")}<br>
+                    <b>Minimum CGPA:</b> ${escapeHTML(p.eligibilityCGPA ?? 0)}<br>
+                    <b>Course:</b> ${escapeHTML(p.eligibleCourse || "Any")}<br>
+                    <b>Year:</b> ${p.eligibleYear ? escapeHTML(p.eligibleYear) : "Any"}<br>
+                    <b>Required Skills:</b> ${escapeHTML(skills)}<br>
+                    <b>Last Date:</b> ${escapeHTML(deadline)}
+                </div>
+
+                <p>${escapeHTML(p.description || "No job description provided.")}</p>
+            `;
+
+            if (p.applicationLink) {
+                const link = document.createElement("a");
+                link.className = "apply-btn";
+                link.textContent = "Apply Now";
+                link.href = p.applicationLink;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                card.appendChild(link);
+            } else {
+                const note = document.createElement("p");
+                note.textContent = "Application link not available.";
+                card.appendChild(note);
+            }
+
+            grid.appendChild(card);
+
+        });
+
+    } catch (error) {
+
+        message.textContent = error.message;
+        console.error(error);
+
+    }
+}
+
+loadPlacements();
+</script>
+
+</body>
+</html>
